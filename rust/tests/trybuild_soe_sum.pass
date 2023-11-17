@@ -1,0 +1,8 @@
+use swag::FifoWindow;
+use swag::soe::*;
+use swag::ops::sum::Sum;
+
+/// Should compile since Sum is invertible
+fn main() {
+    SoE::<Sum::<i32, i32>>::new();
+}

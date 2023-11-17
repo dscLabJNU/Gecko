@@ -1,0 +1,7 @@
+use swag::soe::*;
+use swag::ops::max::Max;
+
+/// Should not compile since Max is not invertible
+fn main() {
+    SoE::<Max<i32, i32>>::new();
+}

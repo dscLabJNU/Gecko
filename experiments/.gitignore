@@ -1,0 +1,5 @@
+*.pyc
+figures/
+results/latency_*
+results/*.log
+results/*.csv
