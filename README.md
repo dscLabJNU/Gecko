@@ -1,4 +1,16 @@
-# Sliding Window Aggregators
+# Gecko
+
+# Introduction
+Gecko, a novel sliding window aggregation algorithm that supports bulk eviction. Gecko leverages a granular-based eviction strategy for various bulk sizes, enabling efficient bulk eviction while maintaining the performance close to that of in-order stream algorithms for single evictions. 
+
+For large data bulks, Gecko performs coarse-grained eviction at the chunk level, followed by fine-grained eviction using leftward binary tree aggregation (LTA) as a complementary method. Moreover, Gecko partitions data based on chunks to prevent the impacts of out-of-order data on other chunks, thereby enabling efficient handling of out-of-order data streams.
+
+Gecko has been accepted by TKDE (Transactions on Knowledge and Data Engineering).
+
+If you use Gecko in your research, please cite our TKDE paper:
+
+*Jianjun Li, Yuhui Deng, Jiande Huang, Yi Zhou, Qifen Yang, and Geyong Min, "Gecko: Efficient Sliding Window Aggregation with Granular-based Bulk Eviction over Big Data" in IEEE Transactions on Knowledge and Data Engineering. doi: 10.1109/TKDE.2024.3511334.*
+
 This repo contains reference implementations of sliding window aggregation 
 algorithms.
 
