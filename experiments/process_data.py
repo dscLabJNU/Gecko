@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import sys, collections
 import process_utility as u
+import sys, collections
+
 
 aggregators = [
                u.Aggregator("daba", '-', 'black'),
@@ -21,9 +22,9 @@ windows = [
           ]
 
 functions = [ "sum",
-            #  "geomean",
-            #  "bloom",
-             "relvar", 
+             "geomean",
+             "bloom",
+            #  "relvar", 
             ]
 
 def main():

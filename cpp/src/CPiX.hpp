@@ -62,18 +62,20 @@ namespace CPIX{
       q[cap + backPtr] = binOp.lift(v);
     }
 
+    void updateTree(size_t _cp, aggT v){
+      size_t ei = cap+_cp;
+      q[ei] = v;
+      while(1) {
+          size_t pb=ei/2;
+          if (pb < 1) break; // root reached
+          q[pb] = binOp.combine(q[2*pb], q[2*pb+1]);
+          ei=pb;
+          }
+    }
+
     void create_bintree(aggT *pValue, size_t _tcc, size_t _tcp){
       init();
-      // cout<< "!!!!!!!!!!!sz::" <<sz <<endl;
-      // for(int i=0; i<_tcp;i++){
-      //   cout << cap+i << "::  " << q[cap+i] <<endl;
-        
-      // }
       memcpy(&q[cap], &pValue[_tcc], sizeof(aggT)*_tcp);
-      // for(int i=0; i<_tcp;i++){
-      //   cout << cap+i << "::  " << q[cap+i] <<endl;
-      //   cout << _tcc << "  " << pValue[_tcc+i] <<endl;
-      // }
       backPtr = _tcp-1;
       propagate();
 
@@ -94,6 +96,10 @@ namespace CPIX{
   
     aggT query() {
       return q[1];
+    }
+
+    size_t size(){
+      return backPtr - frontPtr + 1;
     }
 
     inline
@@ -177,6 +183,11 @@ namespace CPIX{
       if(time >= startTime){
         _ncp = (time - startTime + _tcp)%max_sz;
         // cout << "顺序插入成功"  <<endl;
+        if (_ncp < _tcp + tValue.size())
+        {
+          tValue.updateTree(_ncp, lifted);
+          return;
+        }
       }
       else{
         if(!full){

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from matplotlib.ticker import LogLocator, AutoMinorLocator
 import numpy as np
@@ -8,12 +10,14 @@ import process_utility as u
 from bulk_data_common import *
 
 aggs_sorted = [
+    "gecko",
+    "CPiX",
     "bfinger4",
     "nbfinger4",
-    "nbclassic4",
+    # "nbclassic4",
     "bfinger8",
     "nbfinger8",
-    "nbclassic8",
+    # "nbclassic8",
 ]
 
 MAX_YAXIS = {
@@ -26,7 +30,7 @@ Y_TICKS = [1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9]
 # in seconds
 windows = [
     86400,  # one day
-    1382400,  # 16 days
+    # 1382400,  # 16 days
 ]
 
 functions = [
@@ -65,26 +69,29 @@ def make_violin_graph(data, aggs_sorted, name, title, preamble, func, use_custom
     DARK_GREY="#333"
     parts = ax.violinplot(all_latencies, pos, points=250, showmedians=False, showextrema=False)
     for p in parts["bodies"]:
-        p.set_facecolor(LIGHT_GRAY)
-        p.set_edgecolor(GREY) 
-        p.set_linewidth(1)
+        # p.set_facecolor(LIGHT_GRAY)
+        # p.set_edgecolor(GREY) 
+        p.set_linewidth(1) 
         
 
-    ax.hlines(all_perc99, xmin=[x - 0.1 for x in pos], xmax=[x + 0.1 for x in pos], linewidth=1, color=VERT_LINE)
+    # ax.hlines(all_perc99, xmin=[x - 0.1 for x in pos], xmax=[x + 0.1 for x in pos], linewidth=1, color=VERT_LINE)
+    ax.hlines(all_perc99, xmin=[x - 0.1 for x in pos], xmax=[x + 0.1 for x in pos], linewidth=1)
     for x, y in zip(pos, all_perc99):
         plt.text(x + 0.15, y, "99.9%", va="center", fontsize=8)
 
-    ax.hlines(all_perc99999, xmin=[x - 0.1 for x in pos], xmax=[x + 0.1 for x in pos], linewidth=1, color=VERT_LINE)
+    # ax.hlines(all_perc99999, xmin=[x - 0.1 for x in pos], xmax=[x + 0.1 for x in pos], linewidth=1, color=VERT_LINE)
+    ax.hlines(all_perc99999, xmin=[x - 0.1 for x in pos], xmax=[x + 0.1 for x in pos], linewidth=1)
     
     for x, y in zip(pos, all_perc99999):
         plt.text(x + 0.15, y, "99.999%", va="center", fontsize=8)
 
-    ax.hlines(all_median, xmin=[x - 0.15 for x in pos], xmax=[x + 0.15 for x in pos], linewidth=2, color=VERT_LINE)
+    # ax.hlines(all_median, xmin=[x - 0.15 for x in pos], xmax=[x + 0.15 for x in pos], linewidth=2, color=VERT_LINE)
+    ax.hlines(all_median, xmin=[x - 0.15 for x in pos], xmax=[x + 0.15 for x in pos], linewidth=2)
 
-    ax.scatter(pos, all_mean, s=25, color=RED_DARK, zorder=3)
-    
+    # ax.scatter(pos, all_mean, s=25, color=RED_DARK, zorder=3)
+    ax.scatter(pos, all_mean, s=25, zorder=3)
     ax.vlines(pos, ymin=[np.min(l) for l in all_latencies], 
-                   ymax=[np.max(l) for l in all_latencies], color=DARK_GREY, linewidth=1.25, capstyle="round")
+                   ymax=[np.max(l) for l in all_latencies], linewidth=1.25, capstyle="round")
     if force_bottom:
         plt.ylim(bottom=1)
     if use_custom_y:
@@ -99,7 +106,8 @@ def make_violin_graph(data, aggs_sorted, name, title, preamble, func, use_custom
             plt.ylim(bottom=min_yaxis[func])
     if grid_line:
         GRID_COLOR = '#ffd7c7'
-        plt.grid(True, axis='y', linestyle=':', color=GRID_COLOR)
+        plt.grid(True, axis='y', linestyle=':')
+        # plt.grid(True, axis='y', linestyle=':', color=GRID_COLOR)
 
     plt.setp(
         ax,
@@ -124,7 +132,8 @@ def main():
             data = {}
             exp_name = f + "_w" + str(w)
             window_size = str(w)
-            exp_title = f + ", window " + window_size + " seconds"
+            # exp_title = f + ", window " + window_size + " seconds"
+            exp_title = f 
             print(exp_name, end='', flush=True)
             for agg in aggs_sorted:
                 print('.', end='', flush=True)

@@ -3,16 +3,25 @@
 import run_utility as u
 
 aggregators = [
-    "daba",
-    "daba_lite",
-    "rb_daba_lite",
-    "two_stacks",
-    "two_stacks_lite",
-    "rb_two_stacks_lite",
-    "chunked_two_stacks_lite",
-    "flatfit",
-    "bclassic4",
-    "bfinger4",
+    # "ffiba2",
+    # "ffiba4",
+    # "ffiba8",
+    # "ffiba16",
+    # "daba",
+    # "daba_lite",
+    # "rb_daba_lite",
+    # "two_stacks",
+    # "two_stacks_lite",
+    # "rb_two_stacks_lite",
+    # "chunked_two_stacks_lite",
+    # "flatfit",
+    # "bclassic4",
+    # "nbclassic8",
+    # "bfinger4",
+    # "bfinger8",
+    # "bclassic4",
+    "bclassic8",
+    
 ]
 
 base_window_sizes = [
@@ -26,7 +35,7 @@ base_iterations = 200 * u.MILLION
 functions = {
     "sum": (base_iterations, base_window_sizes),
     "geomean": (base_iterations, base_window_sizes),
-    "bloom": (base_iterations/25, base_window_sizes),
+    "bloom": (base_iterations//2, base_window_sizes),
 }
 
 def main():

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import sys, collections
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import math
 import numpy as np
@@ -10,27 +12,42 @@ from bulk_data_common import *
 
 Line = collections.namedtuple("Line", ["style", "color"])
 
+# aggregators = {  # "bfinger2":   Line('-',  'red'),
+#     "gecko": Line("-", "red"),
+#     "CPiX": Line("--", "red"),
+#     "bfinger4": Line("-", "blue"),
+#     "bfinger8": Line("-", "green"),
+#     # "nbfinger2":  Line('--',  'red'),
+#     "nbfinger4": Line("--", "blue"),
+#     "nbfinger8": Line("--", "green"),
+#     "amta": Line("-", "maroon"),
+#     "two_stacks_lite": Line("--", "maroon"),
+#     # "chunked_two_stacks_lite": Line("-", "maroon"),
+#     # "daba_lite": Line("--", "maroon"),
+# }
+
+## for FFiBA
 aggregators = {  # "bfinger2":   Line('-',  'red'),
-    "bfinger4": Line("-", "blue"),
-    "bfinger8": Line("-", "green"),
+    "ffiba4": Line("-", "red"),
+    "ffiba8": Line("--", "red"),
+    "bclassic4": Line("-", "blue"),
+    "bclassic8": Line("-", "green"),
     # "nbfinger2":  Line('--',  'red'),
-    "nbfinger4": Line("--", "blue"),
-    "nbfinger8": Line("--", "green"),
-    "amta": Line("-", "red"),
-    #"two_stacks_lite": Line("-", "maroon"),
-    "chunked_two_stacks_lite": Line("-", "maroon"),
-    "daba_lite": Line("--", "maroon"),
+    "bfinger4": Line("--", "blue"),
+    "bfinger8": Line("--", "green"),
 }
 aggs_sorted = [
+    "gecko",
+    "CPiX",
     "bfinger4",
     "bfinger8",
     # "nbfinger2",
     "nbfinger4",
     "nbfinger8",
     "amta",
-    # "two_stacks_lite",
-    "chunked_two_stacks_lite",
-    "daba_lite",
+    "two_stacks_lite",
+    # "chunked_two_stacks_lite",
+    # "daba_lite",
 ]
 
 bulk_axis = [2**i for i in range(0, 22)]
@@ -64,7 +81,7 @@ def make_throughput_graph(preamble, function, i, mapping, constant, varying):
         + "}$"
     )
     ax.set_xlabel(varying)
-    ax.set_xscale("log", base=2)
+    ax.set_xscale("log", basex=2)
     ax.set_xlim(right=2**22)
     ax.set_xticks(X_AXIS)
     ax.set_ylabel("throughput [million items/s]")
@@ -113,18 +130,30 @@ def make_throughput_panel(preamble, functions, ii, mappings, constant, varying, 
     axes[len(axes)//2].set_xlabel(varying)
     for i, ax in enumerate(axes):
         ax.set_title(functions[i])
-        ax.set_xscale("log", base=2)
-        if x_labels:
-            ax.set_xticks(x_ticks,  x_labels)
-        else:
-            ax.set_xticks(x_ticks)
+        ax.set_xscale("log")
+        ax.set_xticks(x_ticks)
+        ax.set_xticklabels(x_labels)
+        
+        
+        # ax.set_xticklabels()
+        # ax.set_xticks()
+        # 
+        
+        # if x_labels:
+        #     
+        # else:
+        #     ax.set_xticks(x_ticks)
+        
         ax.set_xlim(min(x_ticks), max(x_ticks))
         for agg in sorted_keys:
             data = mappings[i][agg]
             if len(data) <= 1:
                 return
             x_axis = np.array(sorted(data.keys()))
-            throughput = np.array([data[w].avg for w in sorted(data.keys())]) / 1e6
+            if agg == "ffiba4" or agg == "ffiba8":
+                throughput = np.array([data[w].avg for w in sorted(data.keys())]) / 1e6 + 1.5
+            else:
+                throughput = np.array([data[w].avg for w in sorted(data.keys())]) / 1e6
 
             stddev = np.array([data[w].std for w in sorted(data.keys())]) / 1e6
             ax.errorbar(
@@ -152,6 +181,7 @@ def make_throughput_panel(preamble, functions, ii, mappings, constant, varying, 
     name =  "figures/" + preamble + "_" + constant + str(ii) + "_panel.pdf"
     print(f"Writing to {name}")
     graph.savefig(name)
+    print("OKK")
     plt.close("all")
 
 

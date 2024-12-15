@@ -2,6 +2,8 @@
 import run_utility as u
 
 aggregators = [
+                "CPIX",
+                "gecko",
 #                "bfinger2",
                 "bfinger4",
                 "bfinger8",
@@ -22,7 +24,8 @@ durations = [1*DAY, 16*DAY]
 
 
 data_sets = {
-    "bike": "../experiments/data/NYC-Citi-Bike/catted-citibike-tripdata.csv",
+    # "bike": "../experiments/data/NYC-Citi-Bike/catted-citibike-tripdata.csv",
+    "bike": "../experiments/data/citibike_Aug2Dec.csv",
 }
 
 functions = [ 

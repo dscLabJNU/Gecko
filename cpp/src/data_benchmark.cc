@@ -11,6 +11,7 @@
 #include "TimestampedDABA.hpp"
 #include "TimestampedDABALite.hpp"
 #include "TimestampedFifo.hpp"
+#include "TimeStampedFFiBA.hpp"
 
 #include <vector>
 #include <sstream>
@@ -72,6 +73,11 @@ void call_benchmarks(std::ifstream& in, int samples, const std::string& data_set
                   query_call_data_benchmark<DataSet, btree::MakeAggregate, 2, btree::classic>("bclassic2", aggregator, function, exp, gen, out) ||
                   query_call_data_benchmark<DataSet, btree::MakeAggregate, 4, btree::classic>("bclassic4", aggregator, function, exp, gen, out) ||
                   query_call_data_benchmark<DataSet, btree::MakeAggregate, 8, btree::classic>("bclassic8", aggregator, function, exp, gen, out) ||
+                  
+                  query_call_data_benchmark<DataSet, TimeStampedFFiBA::MakeAggregate,  4, TimeStampedFFiBA::finger>("ffiba4", aggregator, function, exp, exp.window_duration, gen, out) ||
+                  query_call_data_benchmark<DataSet, TimeStampedFFiBA::MakeAggregate,  8, TimeStampedFFiBA::finger>("ffiba8", aggregator, function, exp, exp.window_duration, gen, out) ||
+                  query_call_data_benchmark<DataSet, TimeStampedFFiBA::MakeAggregate,  2, TimeStampedFFiBA::finger>("ffiba2", aggregator, function, exp, exp.window_duration, gen, out) ||
+                  query_call_data_benchmark<DataSet, TimeStampedFFiBA::MakeAggregate,  16, TimeStampedFFiBA::finger>("ffiba16", aggregator, function, exp, exp.window_duration, gen, out) ||
 
                   query_call_data_benchmark<DataSet, timestamped_twostacks::MakeAggregate>("two_stacks", aggregator, function, exp, gen, out) ||
                   query_call_data_benchmark<DataSet, timestamped_twostacks_lite::MakeAggregate>("two_stacks_lite", aggregator, function, exp, gen, out) ||

@@ -38,7 +38,7 @@ def run_fifo_latency(aggregators, functions):
 
 def run_ooo_latency(aggregators, functions, name_base):
     for agg in aggregators:
-        for f, params in functions.iteritems():
+        for f, params in functions.items():
             base_iterations = params[0]
             window_sizes = params[1]
 
@@ -262,7 +262,9 @@ def run_data(aggregators, functions, durations, data_sets, name_base, latency=''
                     for d in durations:
                         exp_file.write(' '.join([agg, f, str(d), latency]) + '\n')
 
-        stdout = exec_no_fail(['../bin/shell_' + name_base + '_benchmark', exp_filename, str(sample_size), data_set, data_file])
+        print("start data experiment")
+        print(['../bin/' + name_base + '_benchmark', exp_filename, str(sample_size), data_set, data_file])
+        stdout = exec_no_fail(['../bin/' + name_base + '_benchmark', exp_filename, str(sample_size), data_set, data_file])
         with open('results/' + data_set + '_' + name_base + '.log', 'wt') as log:
             log.write(stdout)
 

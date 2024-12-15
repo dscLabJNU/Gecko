@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import process_utility as u
 from run_bulk_evict_latency import functions, base_window_sizes, bulk_sizes
@@ -7,14 +9,15 @@ import math
 import process_bulk_data_latency as pbdl
 
 aggregators = [
-    "daba_lite",
+    # "daba_lite",
     # "two_stacks_lite",
+    "gecko",
+    "CPiX",
+    "bfinger8",
+    "nbfinger8",
+    # "bfinger8",
     "chunked_two_stacks_lite",
     "amta",
-    "bfinger4",
-    "bfinger8",
-    "nbfinger4",
-    "nbfinger8",
 ]
 windows = base_window_sizes
 bulk_sizes = bulk_sizes  # from the run program

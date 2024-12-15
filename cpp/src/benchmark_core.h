@@ -15,6 +15,8 @@
 
 #include "SubtractOnEvict.hpp"
 #include "FiBA.hpp"
+#include "FFiBA.hpp"
+#include "TimeStampedFFiBA.hpp"
 
 #include "utils.h"
 
@@ -274,13 +276,14 @@ void bulk_evict_benchmark(Aggregate agg, Experiment exp) {
         uint64_t start_pos = exp.window_size - exp.ooo_distance;
         uint64_t stop_pos = exp.iterations - exp.ooo_distance;
         for (i = start_pos; i < stop_pos; /* nop */) {
-            agg.bulkEvict(i - exp.window_size + exp.bulk_size - 1);
+            // agg.bulkEvict(i - exp.window_size + exp.bulk_size - 1);
+            agg.bulkEvict(i - exp.window_size + exp.ooo_distance);
 
             for (typename Aggregate::timeT j = 0; j < exp.bulk_size && i < stop_pos; ++j, ++i) {
                 std::atomic_thread_fence(std::memory_order_seq_cst);
                 agg.insert(i, 1 + (i % 101));
             }
-            silly_combine(force_side_effect, agg.query());
+            silly_combine(force_side_effect, agg.query()); 
         }
 
         std::chrono::duration<double> runtime = std::chrono::system_clock::now() - start;
@@ -307,7 +310,7 @@ void bulk_evict_benchmark(Aggregate agg, Experiment exp) {
             auto before = rdtsc();
             std::atomic_thread_fence(std::memory_order_release);
 
-            agg.bulkEvict(i - exp.window_size + exp.bulk_size - 1);
+            agg.bulkEvict(i - exp.window_size + exp.ooo_distance);
 
             std::atomic_thread_fence(std::memory_order_acquire);
             auto evict = rdtsc();
@@ -581,6 +584,7 @@ void data_benchmark(Aggregate agg, DataExperiment exp, Generator& gen, std::ostr
                 }
 
                 typename Aggregate::timeT youngest = agg.youngest();
+                // std::cout << "diff::" << std::chrono::duration_cast<std::chrono::seconds>(youngest - agg.oldest()).count() << std::endl;
                 while (exp.window_duration < (youngest - agg.oldest())) {
                     agg.evict();
                     if (warmup) {
@@ -681,6 +685,7 @@ void bulk_data_benchmark(Aggregate agg, DataExperiment exp, Generator& gen, std:
         else {
             std::cout << "core runtime: " << runtime.count() << std::endl;
         }
+        // std::cout << "evictCnt::" << agg.evictCnt << std::endl;
         std::cout << force_side_effect << std::endl;
 
         out << ", " << count << "," << runtime.count();
@@ -765,6 +770,57 @@ bool query_call_benchmark(std::string aggregator, std::string aggregator_req, st
         benchmark(MakeAggregate<BusyLoop<int>>()(0), exp);
         return true;
     }
+    return false;
+}
+
+template <template <typename, typename time> class MakeAggregate, typename time >
+bool query_call_benchmark(std::string aggregator,
+                          std::string aggregator_req,
+                          std::string function_req,
+                          Experiment exp,
+                          size_t winsize) {
+                         
+    if (aggregator_req == aggregator && function_req == "sum") {
+        // std::cout << "当前winsize：" << winsize << "循环次数：" << exp.iterations << std::endl;
+        benchmark(MakeAggregate<Sum<int>, time>()(0,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "max") {
+        benchmark(MakeAggregate<Max<int>, time>()(0,winsize), exp);
+        return true;
+    }
+    // else if (aggregator_req == aggregator && function_req == "mean") {
+    //     benchmark(MakeAggregate<Mean<int>, time>()(Mean<int>::identity), exp);
+    //     return true;
+    // }
+    // else if (aggregator_req == aggregator && function_req == "stddev") {
+    //     benchmark(MakeAggregate<SampleStdDev<int>, time>()(SampleStdDev<int>::identity), exp);
+    //     return true;
+    // }
+    // else if (aggregator_req == aggregator && function_req == "argmax") {
+    //     benchmark(MakeAggregate<ArgMax<int, int, IdentityLifter<int>>, time>()(ArgMax<int, int, IdentityLifter<int>>::identity), exp);
+    //     return true;
+    // }
+    else if (aggregator_req == aggregator && function_req == "bloom") {
+        benchmark(MakeAggregate<BloomFilter<int>, time>()(BloomFilter<int>::identity,winsize), exp);
+        return true;
+    }
+    // else if (aggregator_req == aggregator && function_req == "collect") {
+    //     benchmark(MakeAggregate<Collect<int>, time>()(Collect<int>::identity), exp);
+    //     return true;
+    // }
+    // else if (aggregator_req == aggregator && function_req == "mincount") {
+    //     benchmark(MakeAggregate<MinCount<int>, time>()(MinCount<int>::identity), exp);
+    //     return true;
+    // }
+    else if (aggregator_req == aggregator && function_req == "geomean") {
+        benchmark(MakeAggregate<GeometricMean<int>, time>()(GeometricMean<int>::identity,winsize), exp);
+        return true;
+    }
+    // else if (aggregator_req == aggregator && function_req == "busyloop") {
+    //     benchmark(MakeAggregate<BusyLoop<int>, time>()(0), exp);
+    //     return true;
+    // }
     return false;
 }
 
@@ -971,6 +1027,104 @@ bool query_call_benchmark(std::string aggregator, std::string aggregator_req, st
     return false;
 }
 
+// for FFiBA using different tree
+template <template <typename, typename time, int minArity , FFiBA::Kind kind> class MakeAggregate, typename time , int minArity , FFiBA::Kind kind>
+bool query_call_benchmark(std::string aggregator,
+                          std::string aggregator_req,
+                          std::string function_req,
+                          Experiment exp,
+                          size_t winsize) {
+                         
+    if (aggregator_req == aggregator && function_req == "sum") {
+        benchmark(MakeAggregate<Sum<int>, time , minArity, kind>()(0,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "max") {
+        benchmark(MakeAggregate<Max<int>, time, minArity, kind>()(0,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "bloom") {
+        benchmark(MakeAggregate<BloomFilter<int>, time, minArity, kind>()(BloomFilter<int>::identity,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "geomean") {
+        benchmark(MakeAggregate<GeometricMean<int>, time, minArity, kind>()(GeometricMean<int>::identity,winsize), exp);
+        return true;
+    }
+    return false;
+}
+
+template <template <typename, typename time, int minArity , FFiBA::Kind kind> class MakeAggregate, typename time , int minArity , FFiBA::Kind kind>
+bool query_call_ooo_benchmark(std::string aggregator,
+                          std::string aggregator_req,
+                          std::string function_req,
+                          Experiment exp,
+                          size_t winsize) {
+                         
+    if (aggregator_req == aggregator && function_req == "sum") {
+        ooo_benchmark(MakeAggregate<Sum<int>, time , minArity, kind>()(0,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "max") {
+        ooo_benchmark(MakeAggregate<Max<int>, time, minArity, kind>()(0,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "bloom") {
+        ooo_benchmark(MakeAggregate<BloomFilter<int>, time, minArity, kind>()(BloomFilter<int>::identity,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "geomean") {
+        ooo_benchmark(MakeAggregate<GeometricMean<int>, time, minArity, kind>()(GeometricMean<int>::identity,winsize), exp);
+        return true;
+    }
+    return false;
+}
+
+template <template <typename, typename time, int minArity> class MakeAggregate, typename time , int minArity>
+bool query_call_ooo_benchmark(std::string aggregator, std::string aggregator_req, std::string function_req, Experiment exp, size_t winsize) {
+    if (aggregator_req == aggregator && function_req == "sum") {
+        ooo_benchmark(MakeAggregate<Sum<int>, time, minArity>()(0,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "max") {
+        ooo_benchmark(MakeAggregate<Max<int>, time, minArity>()(0,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "mean") {
+        ooo_benchmark(MakeAggregate<Mean<int>, time, minArity>()(Mean<int>::identity,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "stddev") {
+        ooo_benchmark(MakeAggregate<SampleStdDev<int>, time, minArity>()(SampleStdDev<int>::identity,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "argmax") {
+        ooo_benchmark(MakeAggregate<ArgMax<int, int, IdentityLifter<int>>, time, minArity>()(ArgMax<int, int, IdentityLifter<int>>::identity,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "bloom") {
+        ooo_benchmark(MakeAggregate<BloomFilter<int>, time, minArity>()(BloomFilter<int>::identity,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "collect") {
+        ooo_benchmark(MakeAggregate<Collect<int>, time, minArity>()(Collect<int>::identity,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "mincount") {
+        ooo_benchmark(MakeAggregate<MinCount<int>, time, minArity>()(MinCount<int>::identity,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "geomean") {
+        ooo_benchmark(MakeAggregate<GeometricMean<int>, time, minArity>()(GeometricMean<int>::identity,winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "busyloop") {
+        ooo_benchmark(MakeAggregate<BusyLoop<int>, time, minArity>()(0,winsize), exp);
+        return true;
+    }
+    return false;
+}
+
 template <
     template <
         typename
@@ -1167,6 +1321,58 @@ bool query_call_ooo_benchmark(std::string aggregator, std::string aggregator_req
     }
     else if (aggregator_req == aggregator && function_req == "busyloop") {
         ooo_benchmark(MakeAggregate<BusyLoop<int>, time>()(0), exp);
+        return true;
+    }
+    return false;
+}
+
+
+template <
+    template <
+        typename, 
+        typename time
+    > class MakeAggregate, 
+    typename time
+>
+bool query_call_bulk_evict_benchmark(std::string aggregator, std::string aggregator_req, std::string function_req, Experiment exp, size_t winsize) {
+    if (aggregator_req == aggregator && function_req == "sum") {
+        bulk_evict_benchmark(MakeAggregate<Sum<int>, time>()(0, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "max") {
+        bulk_evict_benchmark(MakeAggregate<Max<int>, time>()(0, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "mean") {
+        bulk_evict_benchmark(MakeAggregate<Mean<int>, time>()(Mean<int>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "stddev") {
+        bulk_evict_benchmark(MakeAggregate<SampleStdDev<int>, time>()(SampleStdDev<int>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "argmax") {
+        bulk_evict_benchmark(MakeAggregate<ArgMax<int, int, IdentityLifter<int>>, time>()(ArgMax<int, int, IdentityLifter<int>>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "bloom") {
+        bulk_evict_benchmark(MakeAggregate<BloomFilter<int>, time>()(BloomFilter<int>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "collect") {
+        bulk_evict_benchmark(MakeAggregate<Collect<int>, time>()(Collect<int>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "mincount") {
+        bulk_evict_benchmark(MakeAggregate<MinCount<int>, time>()(MinCount<int>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "geomean") {
+        bulk_evict_benchmark(MakeAggregate<GeometricMean<int>, time>()(GeometricMean<int>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "busyloop") {
+        bulk_evict_benchmark(MakeAggregate<BusyLoop<int>, time>()(0, winsize), exp);
         return true;
     }
     return false;
@@ -1379,6 +1585,57 @@ bool query_call_bulk_evict_insert_benchmark(std::string aggregator, std::string 
     }
     else if (aggregator_req == aggregator && function_req == "busyloop") {
         bulk_evict_insert_benchmark(MakeAggregate<BusyLoop<int>, time>()(0), exp);
+        return true;
+    }
+    return false;
+}
+
+template <
+    template <
+        typename, 
+        typename time
+    > class MakeAggregate, 
+    typename time
+>
+bool query_call_bulk_evict_insert_benchmark(std::string aggregator, std::string aggregator_req, std::string function_req, Experiment exp, size_t winsize) {
+    if (aggregator_req == aggregator && function_req == "sum") {
+        bulk_evict_insert_benchmark(MakeAggregate<Sum<int>, time>()(0, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "max") {
+        bulk_evict_insert_benchmark(MakeAggregate<Max<int>, time>()(0, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "mean") {
+        bulk_evict_insert_benchmark(MakeAggregate<Mean<int>, time>()(Mean<int>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "stddev") {
+        bulk_evict_insert_benchmark(MakeAggregate<SampleStdDev<int>, time>()(SampleStdDev<int>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "argmax") {
+        bulk_evict_insert_benchmark(MakeAggregate<ArgMax<int, int, IdentityLifter<int>>, time>()(ArgMax<int, int, IdentityLifter<int>>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "bloom") {
+        bulk_evict_insert_benchmark(MakeAggregate<BloomFilter<int>, time>()(BloomFilter<int>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "collect") {
+        bulk_evict_insert_benchmark(MakeAggregate<Collect<int>, time>()(Collect<int>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "mincount") {
+        bulk_evict_insert_benchmark(MakeAggregate<MinCount<int>, time>()(MinCount<int>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "geomean") {
+        bulk_evict_insert_benchmark(MakeAggregate<GeometricMean<int>, time>()(GeometricMean<int>::identity, winsize), exp);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "busyloop") {
+        bulk_evict_insert_benchmark(MakeAggregate<BusyLoop<int>, time>()(0, winsize), exp);
         return true;
     }
     return false;
@@ -1796,6 +2053,51 @@ bool query_call_data_benchmark(const std::string& aggregator,
 }
 
 template <
+    typename Data, 
+    template <
+        typename, 
+        typename time
+    > class MakeAggregate, 
+    typename Generator
+>
+bool query_call_data_benchmark(const std::string& aggregator, 
+                               const std::string& aggregator_req, 
+                               const std::string& function_req, 
+                               const DataExperiment& exp,
+                               const std::chrono::milliseconds& winsize,
+                               Generator& gen, 
+                               std::ostream& out) {
+    std::chrono::milliseconds slice = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(1));
+    if (aggregator_req == aggregator && function_req == "sum") {
+        using SumOp = Sum<Data,int,int>;
+        data_benchmark<Data>(MakeAggregate<SumOp, typename Data::timestamp>()(SumOp::identity, winsize, slice), exp, gen, out);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "max") {
+        using MaxOp = Max<Data,typename Data::timestamp,typename Data::timestamp>;
+        data_benchmark<Data>(MakeAggregate<MaxOp, typename Data::timestamp>()(MaxOp::identity, winsize, slice), exp, gen, out);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "geomean") {
+        using GeoOp = GeometricMean<Data,double>;
+        data_benchmark<Data>(MakeAggregate<GeoOp, typename Data::timestamp>()(GeoOp::identity, winsize, slice), exp, gen, out);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "bloom") {
+        using BloomOp = BloomFilter<Data,uint64_t>;
+        data_benchmark<Data>(MakeAggregate<BloomOp, typename Data::timestamp>()(BloomOp::identity, winsize, slice), exp, gen, out);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "relvar") {
+        using RelVar = RelativeVariation<Data,double>;
+        data_benchmark<Data>(MakeAggregate<RelVar, typename Data::timestamp>()(RelVar::identity, winsize, slice), exp, gen, out);
+        return true;
+    }
+
+    return false;
+}
+
+template <
     typename Data,
     template <
         typename,
@@ -1927,6 +2229,99 @@ bool query_call_bulk_data_benchmark(const std::string& aggregator,
     else if (aggregator_req == aggregator && function_req == "relvar") {
         using RelVar = RelativeVariation<Data,double>;
         bulk_data_benchmark<Data>(MakeAggregate<RelVar, typename Data::timestamp, minDegree, kind>()(RelVar::identity), exp, gen, out);
+        return true;
+    }
+
+    return false;
+}
+
+//for FFiBA
+template <
+    typename Data,
+    template <
+        typename,
+        typename time,
+        int minArity,
+        TimeStampedFFiBA::Kind kind
+    > class MakeAggregate,
+    int minArity,
+    TimeStampedFFiBA::Kind kind,
+    typename Generator>
+bool query_call_data_benchmark(const std::string& aggregator, 
+                               const std::string& aggregator_req, 
+                               const std::string& function_req, 
+                               const DataExperiment& exp, 
+                               const std::chrono::milliseconds& winsize,
+                               Generator& gen, 
+                               std::ostream& out) {
+    if (aggregator_req == aggregator && function_req == "sum") {
+        using SumOp = Sum<Data,int,int>;
+        data_benchmark<Data>(MakeAggregate<SumOp, typename Data::timestamp, minArity, kind>()(SumOp::identity, winsize), exp, gen, out);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "max") {
+        using MaxOp = Max<Data,typename Data::timestamp,typename Data::timestamp>;
+        data_benchmark<Data>(MakeAggregate<MaxOp, typename Data::timestamp, minArity, kind>()(MaxOp::identity, winsize), exp, gen, out);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "geomean") {
+        using GeoOp = GeometricMean<Data,double>;
+        data_benchmark<Data>(MakeAggregate<GeoOp, typename Data::timestamp, minArity, kind>()(GeoOp::identity, winsize), exp, gen, out);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "bloom") {
+        using BloomOp = BloomFilter<Data,uint64_t>;
+        data_benchmark<Data>(MakeAggregate<BloomOp, typename Data::timestamp, minArity, kind>()(BloomOp::identity, winsize), exp, gen, out);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "relvar") {
+        using RelVar = RelativeVariation<Data,double>;
+        data_benchmark<Data>(MakeAggregate<RelVar, typename Data::timestamp, minArity, kind>()(RelVar::identity, winsize), exp, gen, out);
+        return true;
+    }
+
+    return false;
+}
+
+template <
+    typename Data, 
+    template <
+        typename, 
+        typename time
+    > class MakeAggregate, 
+    typename Generator
+>
+bool query_call_bulk_data_benchmark(const std::string& aggregator, 
+                               const std::string& aggregator_req, 
+                               const std::string& function_req, 
+                               const DataExperiment& exp,
+                               const std::chrono::milliseconds& winsize,
+                               Generator& gen, 
+                               std::ostream& out) {
+    std::chrono::milliseconds slice = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(1));
+    if (aggregator_req == aggregator && function_req == "sum") {
+        using SumOp = Sum<Data,int,int>;
+        bulk_data_benchmark<Data>(MakeAggregate<SumOp, typename Data::timestamp>()(SumOp::identity, winsize, slice), exp, gen, out);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "max") {
+        using MaxOp = Max<Data,typename Data::timestamp,typename Data::timestamp>;
+        bulk_data_benchmark<Data>(MakeAggregate<MaxOp, typename Data::timestamp>()(MaxOp::identity, winsize, slice), exp, gen, out);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "geomean") {
+        using GeoOp = GeometricMean<Data,double>;
+        bulk_data_benchmark<Data>(MakeAggregate<GeoOp, typename Data::timestamp>()(GeoOp::identity, winsize, slice), exp, gen, out);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "bloom") {
+        using BloomOp = BloomFilter<Data,uint64_t>;
+        bulk_data_benchmark<Data>(MakeAggregate<BloomOp, typename Data::timestamp>()(BloomOp::identity, winsize, slice), exp, gen, out);
+        return true;
+    }
+    else if (aggregator_req == aggregator && function_req == "relvar") {
+        using RelVar = RelativeVariation<Data,double>;
+        bulk_data_benchmark<Data>(MakeAggregate<RelVar, typename Data::timestamp>()(RelVar::identity, winsize, slice), exp, gen, out);
         return true;
     }
 

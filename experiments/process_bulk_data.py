@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
-import sys, collections
-import process_utility as u
-import run_bulk_data  as rb
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
+import process_utility as u
+import sys, collections
+import run_bulk_data  as rb
 import numpy as np
 from typing import Dict
 from bulk_data_common import *
@@ -18,11 +20,24 @@ from process_bulk_evict import make_throughput_panel
     # "nbclassic2",
     # "nbclassic4",
     # "nbclassic8",
+# aggregators = [
+#                u.Aggregator("CPiX", '-', 'red'),
+#                u.Aggregator("gecko", '--', 'red'),
+#                u.Aggregator("bfinger4", '-', 'blue'),
+#                u.Aggregator("nbfinger4", '--', 'blue'),
+#                u.Aggregator("bfinger8", '-', 'green'),
+#                u.Aggregator("nbfinger8", '--', 'green'),
+# #               u.Aggregator("nbclassic4", '-.', 'darkblue'),
+# #               u.Aggregator("nbclassic8", '-.', 'darkgreen'),
+#               ]
+
 aggregators = [
-               u.Aggregator("bfinger4", '-', 'blue'),
-               u.Aggregator("nbfinger4", '--', 'blue'),
-               u.Aggregator("bfinger8", '-', 'green'),
-               u.Aggregator("nbfinger8", '--', 'green'),
+               u.Aggregator("ffiba4", '-', 'red'),
+               u.Aggregator("ffiba8", '--', 'red'),
+               u.Aggregator("bclassic4", '-', 'blue'),
+               u.Aggregator("bfinger4", '--', 'blue'),
+               u.Aggregator("bclassic8", '-', 'green'),
+               u.Aggregator("bfinger8", '--', 'green'),
 #               u.Aggregator("nbclassic4", '-.', 'darkblue'),
 #               u.Aggregator("nbclassic8", '-.', 'darkgreen'),
               ]
@@ -46,21 +61,24 @@ def func_varying_duration(agg_to_func):
     return ret
     
 def make_data_throughput_graph(
-    title: str, preamble: str, varying: str, function: str, aggs: Dict[str, Dict[str, u.BulkData]], aggregators: list[str]
+    title: str, preamble: str, varying: str, function: str, aggs: Dict[str, Dict[str, u.BulkData]], aggregators: [str]
 ):
     graph = plt.figure()
     ax = graph.add_subplot(111)
     ax.set_title(title + " " + function)
     ax.set_xlabel(varying)
-    ax.set_xscale("log", base=10)
+    ax.set_xscale("log", basex=10)
     ax.set_ylabel("throughput [million items/s]")
 
     for aggregator in aggregators:
         data = aggs[aggregator.name]
         x_axis = np.array(sorted([int(w) for w in data.keys()]))
         throughput = np.array([data[w].avg for w in x_axis]) / 1e6
-
+        
         stddev = np.array([data[w].std for w in x_axis]) / 1e6
+        print(aggregator)
+        print(np.mean(throughput))
+        print("  ")
         ax.errorbar(
             x_axis,
             throughput,

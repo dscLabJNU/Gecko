@@ -2,6 +2,7 @@
 #include "utils.h"
 
 #include "FiBA.hpp"
+#include "FFiBA.hpp"
 
 typedef uint64_t timestamp;
 
@@ -38,7 +39,10 @@ int main(int argc, char** argv) {
           query_call_ooo_benchmark<btree::MakeAggregate, timestamp, 2, btree::classic>("bclassic2", aggregator, function, exp) ||
           query_call_ooo_benchmark<btree::MakeAggregate, timestamp, 4, btree::classic>("bclassic4", aggregator, function, exp) ||
           query_call_ooo_benchmark<btree::MakeAggregate, timestamp, 8, btree::classic>("bclassic8", aggregator, function, exp) ||
-
+        query_call_ooo_benchmark<FFiBA::MakeAggregate, timestamp, 2, FFiBA::finger>("ffiba2", aggregator, function, exp, exp.window_size) ||
+        query_call_ooo_benchmark<FFiBA::MakeAggregate, timestamp, 4, FFiBA::finger>("ffiba4", aggregator, function, exp, exp.window_size) ||
+           query_call_ooo_benchmark<FFiBA::MakeAggregate, timestamp, 8, FFiBA::finger>("ffiba8", aggregator, function, exp, exp.window_size) ||
+        
           query_call_ooo_benchmark<btree::MakeAggregate, timestamp, 2, btree::knuckle>("bknuckle2", aggregator, function, exp) ||
           query_call_ooo_benchmark<btree::MakeAggregate, timestamp, 4, btree::knuckle>("bknuckle4", aggregator, function, exp) ||
           query_call_ooo_benchmark<btree::MakeAggregate, timestamp, 8, btree::knuckle>("bknuckle8", aggregator, function, exp)

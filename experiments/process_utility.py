@@ -91,6 +91,7 @@ def read_throughput_data(preamble, agg, functions):
 def read_throughput(preamble, agg, functions):
     with open("results/" + preamble + "_" + agg + ".csv", "r") as file:
         reader = csv.reader(file)
+        print("open success" + "results/" + preamble + "_" + agg + ".csv")
         data = collections.defaultdict(lambda: collections.defaultdict(dict))
 
         for row in reader:

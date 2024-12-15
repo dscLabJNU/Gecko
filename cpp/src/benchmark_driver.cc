@@ -14,6 +14,7 @@
 #include "OkasakisQueue.hpp"
 #include "Reactive.hpp"
 #include "FiBA.hpp"
+#include "FFiBA.hpp"
 
 typedef uint64_t timestamp;
 
@@ -124,7 +125,12 @@ int main(int argc, char** argv) {
           query_call_benchmark<btree::MakeAggregate, timestamp, 32, btree::finger>("bfinger32", aggregator, function, exp) ||
           query_call_benchmark<btree::MakeAggregate, timestamp, 64, btree::finger>("bfinger64", aggregator, function, exp) ||
           query_call_benchmark<btree::MakeAggregate, timestamp, 128, btree::finger>("bfinger128", aggregator, function, exp) ||
-
+          
+          query_call_benchmark<FFiBA::MakeAggregate, timestamp, 4, FFiBA::finger>("ffiba4", aggregator, function, exp, exp.window_size) ||
+          query_call_benchmark<FFiBA::MakeAggregate, timestamp, 8, FFiBA::finger>("ffiba8", aggregator, function, exp, exp.window_size) ||
+          query_call_benchmark<FFiBA::MakeAggregate, timestamp, 2, FFiBA::finger>("ffiba2", aggregator, function, exp, exp.window_size) ||
+          query_call_benchmark<FFiBA::MakeAggregate, timestamp, 16, FFiBA::finger>("ffiba16", aggregator, function, exp, exp.window_size) ||
+       
           // knuckle experiments
           query_call_benchmark<btree::MakeAggregate, timestamp, 2, btree::knuckle>("bknuckle2", aggregator, function, exp) ||
           query_call_benchmark<btree::MakeAggregate, timestamp, 4, btree::knuckle>("bknuckle4", aggregator, function, exp) ||

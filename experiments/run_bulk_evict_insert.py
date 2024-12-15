@@ -3,6 +3,8 @@
 import run_utility as u
 
 full_aggregators = [
+                "CPIX",
+                "gecko",
 #                "bfinger2",
                 "bfinger4",
                 "bfinger8",
@@ -15,6 +17,8 @@ full_aggregators = [
                 "daba_lite",
               ]
 ooo_aggregators = [
+                "CPIX",
+                "gecko",
 #                "bfinger2",
                 "bfinger4",
                 "bfinger8",

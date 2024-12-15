@@ -6,6 +6,8 @@
 #include "TimestampedTwoStacksLite.hpp"
 #include "TimestampedImplicitTwoStacksLite.hpp"
 #include "TimestampedDABALite.hpp"
+#include "CPiX.hpp"
+#include "gecko.hpp"
 
 typedef uint64_t timestamp;
 
@@ -58,6 +60,9 @@ int main(int argc, char** argv) {
           query_call_bulk_evict_insert_benchmark<btree::MakeBulkAggregate, timestamp, 2, btree::finger>("nbfinger2", aggregator, function, exp) ||
           query_call_bulk_evict_insert_benchmark<btree::MakeBulkAggregate, timestamp, 4, btree::finger>("nbfinger4", aggregator, function, exp) ||
           query_call_bulk_evict_insert_benchmark<btree::MakeBulkAggregate, timestamp, 8, btree::finger>("nbfinger8", aggregator, function, exp) ||
+          
+        //   query_call_bulk_evict_insert_benchmark<CPIX::MakeAggregate, timestamp>("CPIX", aggregator, function, exp, exp.window_size) ||
+        //   query_call_bulk_evict_insert_benchmark<GECKO::MakeAggregate, timestamp>("gecko", aggregator, function, exp, exp.window_size) ||
 
           query_call_bulk_evict_insert_benchmark<timestamped_twostacks_lite::MakeBulkAggregate, timestamp>("two_stacks_lite", aggregator, function, exp) ||
           query_call_bulk_evict_insert_benchmark<timestamped_chunked_twostackslite::MakeBulkAggregate, timestamp>("chunked_two_stacks_lite", aggregator, function, exp) ||

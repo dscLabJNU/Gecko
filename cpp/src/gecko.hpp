@@ -47,7 +47,7 @@ namespace GECKO{
     }
 
     size_t size(){
-      return frontPtr - backPtr + 1;
+      return backPtr - frontPtr + 1;
     }
 
     size_t compute_size(size_t initial_size){
@@ -66,6 +66,25 @@ namespace GECKO{
       q[cap + backPtr] = binOp.lift(v);
     }
 
+    void updateTree(size_t _cp, aggT v) {
+      
+      size_t ei = cap+_cp;
+      q[ei] = binOp.combine(q[ei], v);
+      int cnt = count;
+      while(cnt > 0) {
+          --cnt;
+          ei/=2;
+          q[ei] = binOp.combine(q[2*ei], q[2*ei+1]);
+          if(ei == 3) break;
+      }
+      ei/=2;
+      if(ei != 2){
+          q[ei] = binOp.combine(q[ei/2], q[2*ei+1]);
+      }else{
+          q[2] = binOp.combine(q[3], q[2*ei+1]);
+      }
+    }
+
     void create_bintree(aggT *pValue, size_t _tcc, size_t _tcp){
       memcpy(&q[cap], &pValue[_tcc], sizeof(aggT)*_tcp);
       resIndex = cap/2;
@@ -75,18 +94,16 @@ namespace GECKO{
       point = 2;
       propagateUp();
       propagateDown();
-      // for(int i=0; i<sz;i++){
-      //   cout << i << "::  " << q[i] <<endl;
-      // }
     }
-  
+
     void evict() {
       assert(sz>0);
       size_t ei = cap+frontPtr;
       
       q[ei] = identE;
       size_t cnt = count;
-      while(--cnt) {
+      while(cnt > 0) {
+          --cnt;
           ei/=2;
           q[ei] = binOp.combine(q[2*ei], q[2*ei+1]);
           if(ei == 3) break;
@@ -100,19 +117,20 @@ namespace GECKO{
       }
       resIndex = ei;
       ++frontPtr;
-      // if(frontPtr>1 && 0 == (frontPtr & (frontPtr-1))) count++;
       if(frontPtr == point) {
         ++count;
         point *= 2;
       }
     }
+    
 
-    void evict(time_t t) {
+    void evict(size_t t) {
+
       frontPtr += t - 1;
       size_t ei = cap+frontPtr;
       q[ei] = identE;
 
-      time_t tempT = t;
+      size_t tempT = t;
       while (tempT > 1)
       {
         point *= 2;
@@ -121,6 +139,7 @@ namespace GECKO{
         q[ei] = identE;
         if(ei == 3) break;
       }
+   
       ei/=2;
       if(ei != 2){
           q[ei] = binOp.combine(q[ei/2], q[2*ei+1]);
@@ -130,7 +149,6 @@ namespace GECKO{
 
       resIndex = ei;
       ++frontPtr;
-      // if(frontPtr>1 && 0 == (frontPtr & (frontPtr-1))) count++;
       if(frontPtr == point) {
         ++count;
         point *= 2;
@@ -193,7 +211,7 @@ namespace GECKO{
 
     private:
     size_t cap, sz;
-    size_t frontPtr, backPtr;
+    int frontPtr, backPtr;
     aggT *q;
     binOpFunc binOp;
     aggT identE;
@@ -244,7 +262,11 @@ namespace GECKO{
       size_t _ncp;
       if(time >= startTime){
         _ncp = (time - startTime + _tcp) % max_sz;
-        // cout << "顺序插入成功"  <<endl;
+        if (_cp < _tcp + tValue.size())
+        {
+          tValue.updateTree(_cp, lifted);
+          return;
+        }
       }
       else{
         if(!full){
@@ -309,22 +331,20 @@ namespace GECKO{
           for (size_t i = 0; i < k; i++)
           {
             gValue = _binOp.combine(cValue[i], gValue);
-            // cout<< i << " cValue::" <<cValue[i] <<endl;
           }
-          // cout<< "gValue::" <<gValue <<endl;
         
       }
       if(!tValue.isEmpty()){
         tValue.evict();
-        // cout << "逐出!!!!!!!!!!!!" <<tValue.propagate() <<endl;
         --sz;
         _tcp = (_tcp+1)%max_sz;
         startTime++;
       }
     }
 
+
     void bulkEvict(timeT const& time) {
-        if(time < startTime) {
+         if(time < startTime) {
           return;
         }
         timeT diff = time - startTime;
@@ -334,19 +354,30 @@ namespace GECKO{
         {
           diff -= tValue.size();
           startTime += tValue.size();
-          _tcp += tValue.size();
+          _tcp = (_tcp + tValue.size()) % max_sz;
           tValue.init();
         }
 
         // 以块为单位逐出
         int blockNum = diff / block;
-        while (blockNum > 0)
+        if (blockNum > 0)
         {
-          --blockNum;
-          cValue[_tcp / block] = _identE;
-          startTime += block;
-          _tcp = (_tcp + block) % max_sz;
-          diff -= block;
+          _tcc = _tcp / block;
+          _tcc = _tcc == k ? k - 1 : _tcc;
+          size_t _ntcc = _tcc + blockNum;
+          if (_ntcc >= k)
+          {
+            fill(cValue + _tcc, cValue + k - 1, _identE);
+            fill(pValue + _tcp, pValue + max_sz - 1, _identE);
+            _ntcc = _ntcc % k;
+            fill(cValue, cValue + _ntcc, _identE);
+            fill(pValue, pValue + _ntcc * block, _identE);
+          } else{
+            fill(cValue + _tcc, cValue + _ntcc, _identE);
+          }
+          startTime += block * blockNum;
+          _tcp = (_tcp + blockNum * block) % max_sz;
+          diff -= blockNum * block;
         }
 
         if (!tValue.isEmpty())
@@ -358,13 +389,14 @@ namespace GECKO{
           size_t _treeCp = _tcc == k-1 ?  max_sz-(k-1)*block : block;
           cValue[_tcc] = _identE;
           tValue.create_bintree(pValue, _tcc*block + diff, _treeCp - diff);
+          gValue = _identE;
+          for (size_t i = 0; i < k; i++)
+          {
+            gValue = _binOp.combine(cValue[i], gValue);
+          }
         }
-
-        gValue = _identE;
-        for (size_t i = 0; i < k; i++)
-        {
-          gValue = _binOp.combine(cValue[i], gValue);
-        }
+        // cout << "一切正常" << endl;
+        startTime += diff;
     }
 
     timeT youngest() const {

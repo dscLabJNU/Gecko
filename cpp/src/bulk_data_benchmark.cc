@@ -11,6 +11,9 @@
 #include "TimestampedDABA.hpp"
 #include "TimestampedDABALite.hpp"
 #include "TimestampedFifo.hpp"
+#include "TimeStampedCPiX.hpp"
+#include "TimedStampedGecko.hpp"
+
 
 #include <vector>
 #include <sstream>
@@ -70,14 +73,18 @@ void call_benchmarks(std::ifstream& in, int samples, const std::string& data_set
             // end glibc magic
 
             std::cout << i << " " << aggregator << " " << function << " " << window_duration << std::endl;
-            if (!(query_call_bulk_data_benchmark<DataSet, btree::MakeAggregate, 2, btree::finger>("bfinger2", aggregator, function, exp, gen, out) ||
+            if (!(
+                  query_call_bulk_data_benchmark<DataSet, btree::MakeAggregate, 2, btree::finger>("bfinger2", aggregator, function, exp, gen, out) ||
                   query_call_bulk_data_benchmark<DataSet, btree::MakeAggregate, 4, btree::finger>("bfinger4", aggregator, function, exp, gen, out) ||
                   query_call_bulk_data_benchmark<DataSet, btree::MakeAggregate, 8, btree::finger>("bfinger8", aggregator, function, exp, gen, out) ||
                   // nbfinger
                   query_call_bulk_data_benchmark<DataSet, btree::MakeBulkAggregate, 2, btree::finger>("nbfinger2", aggregator, function, exp, gen, out) ||
                   query_call_bulk_data_benchmark<DataSet, btree::MakeBulkAggregate, 4, btree::finger>("nbfinger4", aggregator, function, exp, gen, out) ||
                   query_call_bulk_data_benchmark<DataSet, btree::MakeBulkAggregate, 8, btree::finger>("nbfinger8", aggregator, function, exp, gen, out) ||
-                  // nbclassic
+
+                  query_call_bulk_data_benchmark<DataSet, TimeStampedCPiX::MakeAggregate>("CPIX", aggregator, function, exp, exp.window_duration, gen, out) ||
+                  query_call_bulk_data_benchmark<DataSet, TimedStampedGecko::MakeAggregate>("gecko", aggregator, function, exp, exp.window_duration, gen, out) ||
+                //   // nbclassic
                   query_call_bulk_data_benchmark<DataSet, btree::MakeBulkAggregate, 2, btree::classic>("nbclassic2", aggregator, function, exp, gen, out) ||
                   query_call_bulk_data_benchmark<DataSet, btree::MakeBulkAggregate, 4, btree::classic>("nbclassic4", aggregator, function, exp, gen, out) ||
                   query_call_bulk_data_benchmark<DataSet, btree::MakeBulkAggregate, 8, btree::classic>("nbclassic8", aggregator, function, exp, gen, out)
